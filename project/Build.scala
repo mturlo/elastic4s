@@ -6,10 +6,10 @@ object Build extends Build {
   val org = "com.sksamuel.elastic4s"
   val appVersion = "1.6.7-SNAPSHOT"
 
-  val ScalaVersion = "2.11.7"
-  val ScalatestVersion = "2.2.5"
+  val ScalaVersion = "2.12.3"
+  val ScalatestVersion = "3.0.3"
   val MockitoVersion = "1.9.5"
-  val JacksonVersion = "2.5.3"
+  val JacksonVersion = "2.9.0"
   val Slf4jVersion = "1.7.12"
   val ScalaLoggingVersion = "2.1.2"
   val ElasticsearchVersion = "1.6.2"
@@ -21,7 +21,6 @@ object Build extends Build {
     version := appVersion,
     organization := org,
     scalaVersion := ScalaVersion,
-    crossScalaVersions := Seq("2.11.7", "2.10.5"),
     publishMavenStyle := true,
     publishArtifact in Test := false,
     parallelExecution in Test := false,
@@ -101,7 +100,7 @@ object Build extends Build {
     .settings(rootSettings: _*)
     .settings(
       name := "elastic4s-streams",
-      libraryDependencies += "com.typesafe.akka"    %% "akka-actor" % "2.3.11",
+      libraryDependencies += "com.typesafe.akka"    %% "akka-actor" % "2.5.3",
       libraryDependencies += "org.reactivestreams"   % "reactive-streams" % "1.0.0",
       libraryDependencies += "org.reactivestreams"   % "reactive-streams-tck" % "1.0.0" % "test"
     ).dependsOn(core, testkit % "test", jackson % "test")
