@@ -18,7 +18,7 @@ trait QueryDsl {
   implicit def string2query(string: String): SimpleStringQueryDefinition = new SimpleStringQueryDefinition(string)
   implicit def tuple2query(kv: (String, String)): TermQueryDefinition = new TermQueryDefinition(kv._1, kv._2)
 
-  def query = this
+  def query: QueryDsl = this
 
   @deprecated("use boostingQuery", "1.4.0")
   def boosting: BoostingQueryDefinition = boostingQuery
@@ -43,8 +43,8 @@ trait QueryDsl {
     def filter(filter: FilterDefinition) = new ConstantScoreDefinition(QueryBuilders.constantScoreQuery(filter.builder))
   }
 
-  def constantScoreQuery(q: QueryDefinition) = constantScore query q
-  def constantScoreFilter(f: FilterDefinition) = constantScore filter f
+  def constantScoreQuery(q: QueryDefinition): ConstantScoreDefinition = constantScore query q
+  def constantScoreFilter(f: FilterDefinition): ConstantScoreDefinition = constantScore filter f
 
   def dismax = new DisMaxDefinition
 
@@ -79,7 +79,7 @@ trait QueryDsl {
   def filteredQuery = new FilteredQueryDefinition
 
   @deprecated("use fuzzyQuery", "1.4.0")
-  def fuzzy(name: String, value: Any) = fuzzyQuery(name, value)
+  def fuzzy(name: String, value: Any): FuzzyQueryDefinition = fuzzyQuery(name, value)
   def fuzzyQuery(name: String, value: Any) = new FuzzyQueryDefinition(name, value)
 
   def indicesQuery(indices: String*) = new {
@@ -208,7 +208,7 @@ trait QueryDsl {
 }
 
 class BoolQueryDefinition extends QueryDefinition {
-  val builder = QueryBuilders.boolQuery()
+  val builder: BoolQueryBuilder = QueryBuilders.boolQuery()
   def adjustPureNegative(adjustPureNegative: Boolean): this.type = {
     builder.adjustPureNegative(adjustPureNegative)
     this
@@ -270,11 +270,11 @@ class FunctionScoreQueryDefinition(queryOrFilter: Either[QueryDefinition, Filter
   with DefinitionAttributeMaxBoost
   with DefinitionAttributeScoreMode {
 
-  val builder = queryOrFilter match {
+  val builder: FunctionScoreQueryBuilder = queryOrFilter match {
     case Left(query) => new FunctionScoreQueryBuilder(query.builder)
     case Right(filter) => new FunctionScoreQueryBuilder(filter.builder)
   }
-  val _builder = builder
+  val _builder: FunctionScoreQueryBuilder = builder
 
   def scorers(scorers: ScoreDefinition[_]*): FunctionScoreQueryDefinition = {
     scorers.foreach(scorer => scorer._filter match {
@@ -287,8 +287,8 @@ class FunctionScoreQueryDefinition(queryOrFilter: Either[QueryDefinition, Filter
 
 class MoreLikeThisQueryDefinition(fields: String*) extends QueryDefinition {
 
-  val _builder = QueryBuilders.moreLikeThisQuery(fields: _*)
-  val builder = _builder
+  val _builder: MoreLikeThisQueryBuilder = QueryBuilders.moreLikeThisQuery(fields: _*)
+  val builder: MoreLikeThisQueryBuilder = _builder
 
   def analyzer(analyser: String): this.type = {
     _builder.analyzer(analyser)
@@ -389,15 +389,15 @@ class MultiMatchQueryDefinition(text: String)
   with DefinitionAttributeFuzzyRewrite
   with DefinitionAttributeCutoffFrequency {
 
-  val _builder = QueryBuilders.multiMatchQuery(text)
-  val builder = _builder
+  val _builder: MultiMatchQueryBuilder = QueryBuilders.multiMatchQuery(text)
+  val builder: MultiMatchQueryBuilder = _builder
 
   def maxExpansions(maxExpansions: Int): MultiMatchQueryDefinition = {
     builder.maxExpansions(maxExpansions)
     this
   }
 
-  def fields(_fields: Iterable[String]) = {
+  def fields(_fields: Iterable[String]): MultiMatchQueryDefinition = {
     for ( f <- _fields ) builder.field(f)
     this
   }
@@ -479,7 +479,7 @@ class MultiMatchQueryDefinition(text: String)
 }
 
 class SpanMultiTermQueryDefinition(query: MultiTermQueryDefinition) extends SpanQueryDefinition {
-  override val builder = QueryBuilders.spanMultiTermQueryBuilder(query.builder)
+  override val builder: SpanMultiTermQueryBuilder = QueryBuilders.spanMultiTermQueryBuilder(query.builder)
 }
 
 class FuzzyQueryDefinition(name: String, value: Any)
@@ -487,19 +487,19 @@ class FuzzyQueryDefinition(name: String, value: Any)
   with DefinitionAttributePrefixLength
   with DefinitionAttributeBoost {
 
-  val builder = QueryBuilders.fuzzyQuery(name, value.toString)
-  val _builder = builder
+  val builder: FuzzyQueryBuilder = QueryBuilders.fuzzyQuery(name, value.toString)
+  val _builder: FuzzyQueryBuilder = builder
 
-  def fuzziness(fuzziness: Fuzziness) = {
+  def fuzziness(fuzziness: Fuzziness): FuzzyQueryDefinition = {
     builder.fuzziness(fuzziness)
     this
   }
 
-  def maxExpansions(maxExpansions: Int) = {
+  def maxExpansions(maxExpansions: Int): FuzzyQueryDefinition = {
     builder.maxExpansions(maxExpansions)
     this
   }
-  def transpositions(transpositions: Boolean) = {
+  def transpositions(transpositions: Boolean): FuzzyQueryDefinition = {
     builder.transpositions(transpositions)
     this
   }
@@ -507,8 +507,8 @@ class FuzzyQueryDefinition(name: String, value: Any)
 
 class HasChildQueryDefinition(`type`: String, q: QueryDefinition)
   extends QueryDefinition with DefinitionAttributeBoost {
-  val builder = QueryBuilders.hasChildQuery(`type`, q.builder)
-  val _builder = builder
+  val builder: HasChildQueryBuilder = QueryBuilders.hasChildQuery(`type`, q.builder)
+  val _builder: HasChildQueryBuilder = builder
   def scoreType(scoreType: String): HasChildQueryDefinition = {
     builder.scoreType(scoreType)
     this
@@ -517,8 +517,8 @@ class HasChildQueryDefinition(`type`: String, q: QueryDefinition)
 
 class HasParentQueryDefinition(`type`: String, q: QueryDefinition)
   extends QueryDefinition with DefinitionAttributeBoost {
-  val builder = QueryBuilders.hasParentQuery(`type`, q.builder)
-  val _builder = builder
+  val builder: HasParentQueryBuilder = QueryBuilders.hasParentQuery(`type`, q.builder)
+  val _builder: HasParentQueryBuilder = builder
   def scoreType(scoreType: String): HasParentQueryDefinition = {
     builder.scoreType(scoreType)
     this
@@ -526,7 +526,7 @@ class HasParentQueryDefinition(`type`: String, q: QueryDefinition)
 }
 
 class IndicesQueryDefinition(indices: Iterable[String], query: QueryDefinition) extends QueryDefinition {
-  override val builder = QueryBuilders.indicesQuery(query.builder, indices.toSeq: _*)
+  override val builder: IndicesQueryBuilder = QueryBuilders.indicesQuery(query.builder, indices.toSeq: _*)
   def noMatchQuery(query: QueryDefinition): this.type = {
     builder.noMatchQuery(query.builder)
     this
@@ -550,11 +550,11 @@ class FuzzyLikeThisDefinition(text: String, fields: Iterable[String])
   with DefinitionAttributePrefixLength
   with DefinitionAttributeBoost {
 
-  val builder = fields.size match {
+  val builder: FuzzyLikeThisQueryBuilder = fields.size match {
     case 0 => QueryBuilders.fuzzyLikeThisQuery().likeText(text)
     case _ => QueryBuilders.fuzzyLikeThisQuery(fields.toSeq: _*).likeText(text)
   }
-  val _builder = builder
+  val _builder: FuzzyLikeThisQueryBuilder = builder
 
   @deprecated("deprecated by elasticsearch", "1.6.5")
   def analyzer(a: Analyzer): FuzzyLikeThisDefinition = {
@@ -592,8 +592,8 @@ class CommonTermsQueryDefinition(name: String, text: String)
   with DefinitionAttributeBoost
   with DefinitionAttributeCutoffFrequency {
 
-  val builder = QueryBuilders.commonTermsQuery(name, text)
-  val _builder = builder
+  val builder: CommonTermsQueryBuilder = QueryBuilders.commonTermsQuery(name, text)
+  val _builder: CommonTermsQueryBuilder = builder
 
   def highFreqMinimumShouldMatch(highFreqMinimumShouldMatch: Int): CommonTermsQueryDefinition = {
     builder.highFreqMinimumShouldMatch(highFreqMinimumShouldMatch.toString)
@@ -618,7 +618,7 @@ class CommonTermsQueryDefinition(name: String, text: String)
 }
 
 class DisMaxDefinition extends QueryDefinition {
-  val builder = QueryBuilders.disMaxQuery()
+  val builder: DisMaxQueryBuilder = QueryBuilders.disMaxQuery()
   def query(queries: QueryDefinition*): DisMaxDefinition = {
     queries.foreach(q => builder.add(q.builder))
     this
@@ -634,7 +634,7 @@ class DisMaxDefinition extends QueryDefinition {
 }
 
 class FilteredQueryDefinition extends QueryDefinition {
-  def builder = QueryBuilders.filteredQuery(_query, _filter).boost(_boost.toFloat)
+  def builder: FilteredQueryBuilder = QueryBuilders.filteredQuery(_query, _filter).boost(_boost.toFloat)
   private var _query: QueryBuilder = QueryBuilders.matchAllQuery
   private var _filter: FilterBuilder = null
   private var _boost: Double = -1d
@@ -654,15 +654,15 @@ class FilteredQueryDefinition extends QueryDefinition {
 
 class IdQueryDefinition(ids: String*) extends QueryDefinition {
 
-  def builder = _builder
+  def builder: IdsQueryBuilder = _builder
   private var _builder = QueryBuilders.idsQuery().addIds(ids: _*)
   private var _boost: Double = -1
 
-  def types(types: String*) = {
+  def types(types: String*): IdQueryDefinition = {
     _builder = QueryBuilders.idsQuery(types: _*).addIds(ids: _*).boost(_boost.toFloat)
     this
   }
-  def boost(boost: Double) = {
+  def boost(boost: Double): IdQueryDefinition = {
     _builder.boost(boost.toFloat)
     _boost = boost
     this
@@ -670,28 +670,28 @@ class IdQueryDefinition(ids: String*) extends QueryDefinition {
 }
 
 class BoostingQueryDefinition extends QueryDefinition {
-  val builder = QueryBuilders.boostingQuery()
-  def positive(block: => QueryDefinition) = {
+  val builder: BoostingQueryBuilder = QueryBuilders.boostingQuery()
+  def positive(block: => QueryDefinition): BoostingQueryDefinition = {
     builder.positive(block.builder)
     this
   }
-  def negative(block: => QueryDefinition) = {
+  def negative(block: => QueryDefinition): BoostingQueryDefinition = {
     builder.negative(block.builder)
     this
   }
-  def positiveBoost(b: Double) = {
+  def positiveBoost(b: Double): BoostingQueryDefinition = {
     builder.boost(b.toFloat)
     this
   }
-  def negativeBoost(b: Double) = {
+  def negativeBoost(b: Double): BoostingQueryDefinition = {
     builder.negativeBoost(b.toFloat)
     this
   }
 }
 
 class SpanOrQueryDefinition extends SpanQueryDefinition with DefinitionAttributeBoost {
-  val builder = QueryBuilders.spanOrQuery
-  val _builder = builder
+  val builder: SpanOrQueryBuilder = QueryBuilders.spanOrQuery
+  val _builder: SpanOrQueryBuilder = builder
   def clause(spans: SpanTermQueryDefinition*): SpanOrQueryDefinition = {
     spans.foreach {
       span => builder.clause(span.builder)
@@ -701,8 +701,8 @@ class SpanOrQueryDefinition extends SpanQueryDefinition with DefinitionAttribute
 }
 
 class SpanTermQueryDefinition(field: String, value: Any) extends SpanQueryDefinition {
-  val builder = QueryBuilders.spanTermQuery(field, value.toString)
-  def boost(boost: Double) = {
+  val builder: SpanTermQueryBuilder = QueryBuilders.spanTermQuery(field, value.toString)
+  def boost(boost: Double): SpanTermQueryDefinition = {
     builder.boost(boost.toFloat)
     this
   }
@@ -716,24 +716,24 @@ class WildcardQueryDefinition(field: String, query: Any)
   extends QueryDefinition
   with DefinitionAttributeRewrite
   with DefinitionAttributeBoost {
-  val builder = QueryBuilders.wildcardQuery(field, query.toString)
-  val _builder = builder
+  val builder: WildcardQueryBuilder = QueryBuilders.wildcardQuery(field, query.toString)
+  val _builder: WildcardQueryBuilder = builder
 }
 
 class PrefixQueryDefinition(field: String, prefix: Any)
   extends MultiTermQueryDefinition
   with DefinitionAttributeRewrite
   with DefinitionAttributeBoost {
-  val builder = QueryBuilders.prefixQuery(field, prefix.toString)
-  val _builder = builder
+  val builder: PrefixQueryBuilder = QueryBuilders.prefixQuery(field, prefix.toString)
+  val _builder: PrefixQueryBuilder = builder
 }
 
 class RegexQueryDefinition(field: String, regex: Any)
   extends MultiTermQueryDefinition
   with DefinitionAttributeRewrite
   with DefinitionAttributeBoost {
-  val builder = QueryBuilders.regexpQuery(field, regex.toString)
-  val _builder = builder
+  val builder: RegexpQueryBuilder = QueryBuilders.regexpQuery(field, regex.toString)
+  val _builder: RegexpQueryBuilder = builder
   def flags(flags: RegexpFlag*): RegexQueryDefinition = {
     builder.flags(flags: _*)
     this
@@ -741,15 +741,15 @@ class RegexQueryDefinition(field: String, regex: Any)
 }
 
 class TermQueryDefinition(field: String, value: Any) extends QueryDefinition {
-  val builder = QueryBuilders.termQuery(field, value.toString)
-  def boost(boost: Double) = {
+  val builder: TermQueryBuilder = QueryBuilders.termQuery(field, value.toString)
+  def boost(boost: Double): TermQueryDefinition = {
     builder.boost(boost.toFloat)
     this
   }
 }
 
 class TermsQueryDefinition(field: String, values: String*) extends QueryDefinition {
-  val builder = QueryBuilders.termsQuery(field, values: _*)
+  val builder: TermsQueryBuilder = QueryBuilders.termsQuery(field, values: _*)
   def boost(boost: Double): TermsQueryDefinition = {
     builder.boost(boost.toFloat)
     this
@@ -769,11 +769,11 @@ trait SpanQueryDefinition extends QueryDefinition {
 }
 
 class SpanFirstQueryDefinition(query: SpanQueryDefinition, end: Int) extends QueryDefinition {
-  val builder = QueryBuilders.spanFirstQuery(query.builder, end)
+  val builder: SpanFirstQueryBuilder = QueryBuilders.spanFirstQuery(query.builder, end)
 }
 
 class SpanNotQueryDefinition extends QueryDefinition {
-  val builder = QueryBuilders.spanNotQuery()
+  val builder: SpanNotQueryBuilder = QueryBuilders.spanNotQuery()
   def boost(boost: Double): this.type = {
     builder.boost(boost.toFloat)
     this
@@ -801,7 +801,7 @@ class SpanNotQueryDefinition extends QueryDefinition {
 }
 
 class SpanNearQueryDefinition extends SpanQueryDefinition {
-  val builder = QueryBuilders.spanNearQuery()
+  val builder: SpanNearQueryBuilder = QueryBuilders.spanNearQuery()
   def boost(boost: Double): this.type = {
     builder.boost(boost.toFloat)
     this
@@ -828,8 +828,8 @@ class TopChildrenQueryDefinition(`type`: String, q: QueryDefinition)
   extends QueryDefinition
   with DefinitionAttributeBoost {
 
-  val builder = QueryBuilders.topChildrenQuery(`type`, q.builder)
-  val _builder = builder
+  val builder: TopChildrenQueryBuilder = QueryBuilders.topChildrenQuery(`type`, q.builder)
+  val _builder: TopChildrenQueryBuilder = builder
 
   @deprecated("deprecated by elasticsearch", "1.6.5")
   def factor(factor: Int): TopChildrenQueryDefinition = {
@@ -852,7 +852,7 @@ class TopChildrenQueryDefinition(`type`: String, q: QueryDefinition)
 
 class MatchAllQueryDefinition extends QueryDefinition {
 
-  val builder = QueryBuilders.matchAllQuery
+  val builder: MatchAllQueryBuilder = QueryBuilders.matchAllQuery
 
   def normsField(normsField: String): MatchAllQueryDefinition = {
     builder.normsField(normsField)
@@ -866,25 +866,25 @@ class MatchAllQueryDefinition extends QueryDefinition {
 
 class RangeQueryDefinition(field: String) extends MultiTermQueryDefinition with DefinitionAttributeBoost {
 
-  val builder = QueryBuilders.rangeQuery(field)
-  val _builder = builder
+  val builder: RangeQueryBuilder = QueryBuilders.rangeQuery(field)
+  val _builder: RangeQueryBuilder = builder
 
-  def from(f: Any) = {
+  def from(f: Any): RangeQueryDefinition = {
     builder.from(f)
     this
   }
 
-  def to(t: Any) = {
+  def to(t: Any): RangeQueryDefinition = {
     builder.to(t)
     this
   }
 
-  def includeLower(includeLower: Boolean) = {
+  def includeLower(includeLower: Boolean): RangeQueryDefinition = {
     builder.includeLower(includeLower)
     this
   }
 
-  def includeUpper(includeUpper: Boolean) = {
+  def includeUpper(includeUpper: Boolean): RangeQueryDefinition = {
     builder.includeUpper(includeUpper)
     this
   }
@@ -899,8 +899,8 @@ class MatchQueryDefinition(field: String, value: Any)
   with DefinitionAttributeRewrite
   with DefinitionAttributeCutoffFrequency {
 
-  val builder = QueryBuilders.matchQuery(field, value)
-  val _builder = builder
+  val builder: MatchQueryBuilder = QueryBuilders.matchQuery(field, value)
+  val _builder: MatchQueryBuilder = builder
 
   def operator(op: String): MatchQueryDefinition = {
     op match {
@@ -915,32 +915,32 @@ class MatchQueryDefinition(field: String, value: Any)
     this
   }
 
-  def zeroTermsQuery(z: MatchQueryBuilder.ZeroTermsQuery) = {
+  def zeroTermsQuery(z: MatchQueryBuilder.ZeroTermsQuery): MatchQueryDefinition = {
     builder.zeroTermsQuery(z)
     this
   }
 
-  def slop(s: Int) = {
+  def slop(s: Int): MatchQueryDefinition = {
     builder.slop(s)
     this
   }
 
-  def setLenient(lenient: Boolean) = {
+  def setLenient(lenient: Boolean): MatchQueryDefinition = {
     builder.setLenient(lenient)
     this
   }
 
-  def operator(op: MatchQueryBuilder.Operator) = {
+  def operator(op: MatchQueryBuilder.Operator): MatchQueryDefinition = {
     builder.operator(op)
     this
   }
 
-  def minimumShouldMatch(a: Any) = {
+  def minimumShouldMatch(a: Any): MatchQueryDefinition = {
     builder.minimumShouldMatch(a.toString)
     this
   }
 
-  def maxExpansions(max: Int) = {
+  def maxExpansions(max: Int): MatchQueryDefinition = {
     builder.maxExpansions(max)
     this
   }
@@ -960,8 +960,8 @@ class MatchPhrasePrefixDefinition(field: String, value: Any)
   with DefinitionAttributeRewrite
   with DefinitionAttributeCutoffFrequency {
 
-  def builder = _builder
-  val _builder = QueryBuilders.matchPhrasePrefixQuery(field, value.toString)
+  def builder: MatchQueryBuilder = _builder
+  val _builder: MatchQueryBuilder = QueryBuilders.matchPhrasePrefixQuery(field, value.toString)
 
   def analyzer(a: Analyzer): MatchPhrasePrefixDefinition = {
     builder.analyzer(a.name)
@@ -1026,15 +1026,15 @@ class MatchPhraseDefinition(field: String, value: Any)
   with DefinitionAttributeRewrite
   with DefinitionAttributeCutoffFrequency {
 
-  val builder = QueryBuilders.matchPhraseQuery(field, value.toString)
-  val _builder = builder
+  val builder: MatchQueryBuilder = QueryBuilders.matchPhraseQuery(field, value.toString)
+  val _builder: MatchQueryBuilder = builder
 
   def analyzer(a: Analyzer): MatchPhraseDefinition = {
     builder.analyzer(a.name)
     this
   }
 
-  def zeroTermsQuery(z: MatchQueryBuilder.ZeroTermsQuery) = {
+  def zeroTermsQuery(z: MatchQueryBuilder.ZeroTermsQuery): MatchPhraseDefinition = {
     builder.zeroTermsQuery(z)
     this
   }
@@ -1062,17 +1062,17 @@ class MatchPhraseDefinition(field: String, value: Any)
     this
   }
 
-  def minimumShouldMatch(a: Any) = {
+  def minimumShouldMatch(a: Any): MatchPhraseDefinition = {
     builder.minimumShouldMatch(a.toString)
     this
   }
 
-  def maxExpansions(max: Int) = {
+  def maxExpansions(max: Int): MatchPhraseDefinition = {
     builder.maxExpansions(max)
     this
   }
 
-  def fuzzyTranspositions(f: Boolean) = {
+  def fuzzyTranspositions(f: Boolean): MatchPhraseDefinition = {
     builder.fuzzyTranspositions(f)
     this
   }
@@ -1081,7 +1081,7 @@ class MatchPhraseDefinition(field: String, value: Any)
 
 class SimpleStringQueryDefinition(query: String) extends QueryDefinition {
 
-  val builder = QueryBuilders.simpleQueryStringQuery(query)
+  val builder: SimpleQueryStringBuilder = QueryBuilders.simpleQueryStringQuery(query)
 
   def analyzer(analyzer: String): SimpleStringQueryDefinition = {
     builder.analyzer(analyzer)
@@ -1132,8 +1132,8 @@ class QueryStringQueryDefinition(query: String)
   with DefinitionAttributeRewrite
   with DefinitionAttributeBoost {
 
-  val builder = QueryBuilders.queryStringQuery(query)
-  val _builder = builder
+  val builder: QueryStringQueryBuilder = QueryBuilders.queryStringQuery(query)
+  val _builder: QueryStringQueryBuilder = builder
 
   def analyzer(analyzer: String): this.type = {
     builder.analyzer(analyzer)
@@ -1258,7 +1258,7 @@ class NestedQueryDefinition(path: String) extends QueryDefinition {
   private var _scoreMode: String = _
   private var _inner: QueryInnerHitBuilder = _
 
-  def builder = {
+  def builder: NestedQueryBuilder = {
     require(_query != null, "must specify query for nested score query")
     QueryBuilders.nestedQuery(path, _query.builder).scoreMode(_scoreMode).boost(_boost.toFloat).innerHit(_inner)
   }
