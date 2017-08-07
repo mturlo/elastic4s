@@ -27,6 +27,7 @@ object Build extends Build {
     parallelExecution in Test := false,
     scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8"),
     javacOptions := Seq("-source", "1.7", "-target", "1.7"),
+    credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
     libraryDependencies ++= Seq(
       "org.elasticsearch" % "elasticsearch" % ElasticsearchVersion,
       "org.slf4j" % "slf4j-api" % Slf4jVersion,
@@ -40,7 +41,7 @@ object Build extends Build {
     ),
     publishTo <<= version {
       (v: String) =>
-        val nexus = "https://oss.sonatype.org/"
+        val nexus = "http://nexus.stgwaw.opigram/"
         if (v.trim.endsWith("SNAPSHOT"))
           Some("snapshots" at nexus + "content/repositories/snapshots")
         else
